@@ -132,5 +132,23 @@ window.spotifyAuth = {
     getCurrentTrackUri: () => currentTrackUri,
     setSpotifyDeviceId: (id) => { spotifyDeviceId = id; },
     setIsPlaying: (val) => { isPlaying = val; },
-    setCurrentTrackUri: (uri) => { currentTrackUri = uri; }
+    setCurrentTrackUri: (uri) => { currentTrackUri = uri; },
+    async fetchCurrentTrack(updateTrackInfo) {
+        const token = window.spotifyAuth.getSpotifyAccessToken();
+        const res = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.item) {
+                const track = data.item.name;
+                const artist = data.item.artists.map(a => a.name).join(', ');
+                updateTrackInfo(track, artist);
+            } else {
+                updateTrackInfo('', '');
+            }
+        } else {
+            updateTrackInfo('', '');
+        }
+    },
 };

@@ -1,5 +1,16 @@
 // genre-roulette.js
 const GENRES = window.GENRES;
+function getDurationFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const timerParam = params.get('timer');
+  const minutes = parseInt(timerParam, 10);
+  return (!isNaN(minutes) && minutes > 0) ? minutes : null;
+}
+
+let GENRE_DURATION_MINUTES = 15;
+const urlMinutes = getDurationFromUrl();
+if (urlMinutes) GENRE_DURATION_MINUTES = urlMinutes;
+
 let currentGenre = null;
 let timer = null;
 let previousGenre = null;
@@ -58,7 +69,21 @@ function updateTimerDisplay(secondsLeft) {
   timerElem.textContent = `Verbleibende Zeit: ${min}:${sec.toString().padStart(2, '0')}`;
 }
 
+function updateTrackInfo(track, artist) {
+  let infoElem = document.getElementById('track-info');
+  if (!infoElem) {
+    infoElem = document.createElement('div');
+    infoElem.id = 'track-info';
+    infoElem.style.marginTop = '18px';
+    document.getElementById('genre-display').appendChild(infoElem);
+  }
+  infoElem.innerHTML = track && artist
+    ? `<strong>${track}</strong><br><span>${artist}</span>`
+    : '';
+}
+
 let timerInterval = null;
+let trackInterval = null;
 
 function startRoulette() {
   if (isPaused) return;
@@ -74,7 +99,7 @@ function startRoulette() {
   document.getElementById('next-genre').style.display = 'none';
   if (timer) clearTimeout(timer);
   if (timerInterval) clearInterval(timerInterval);
-  let secondsLeft = 10 * 60;
+  let secondsLeft = GENRE_DURATION_MINUTES * 60;
   updateTimerDisplay(secondsLeft);
   timerInterval = setInterval(() => {
     secondsLeft--;
@@ -83,13 +108,17 @@ function startRoulette() {
       clearInterval(timerInterval);
     }
   }, 1000);
+  // Track-Info Intervall
+  if (trackInterval) clearInterval(trackInterval);
+  trackInterval = setInterval(() => window.spotifyAuth.fetchCurrentTrack(updateTrackInfo), 3000);
   timer = setTimeout(() => {
     pausePlayback();
     isPaused = true;
     document.getElementById('next-genre').style.display = 'inline-block';
     updateTimerDisplay(0);
     clearInterval(timerInterval);
-  }, 10 * 60 * 1000); // 10 Minuten
+    clearInterval(trackInterval);
+  }, GENRE_DURATION_MINUTES * 60 * 1000);
 }
 
 function pausePlayback() {

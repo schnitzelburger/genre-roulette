@@ -91,11 +91,35 @@ button:disabled {
 }
 
 #genre-name {
-  font-size: 2.2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: #ff9800;
   margin-bottom: 20px;
   text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+#timer-display {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin-top: 10px;
+  text-align: center;
+  color: #333;
+}
+
+#track-info {
+  font-size: 1.1em;
+  margin-top: 18px;
+  color: #444;
+  background: #fff3e0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.08);
+  display: inline-block;
+}
+
+#track-info strong {
+  color: #ff9800;
+  font-weight: 700;
 }
 
 @media (max-width: 768px) {
