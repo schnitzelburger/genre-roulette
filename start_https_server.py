@@ -101,7 +101,9 @@ def start_https_server(port=5500):
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
+            print("\n🛑 Stopping server...")
             httpd.shutdown()
+            httpd.server_close()
             print("\n🛑 Server stopped!")
 
 if __name__ == "__main__":

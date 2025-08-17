@@ -3,6 +3,7 @@
   <head>
     <title>Genre Roulette</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="genres.js"></script>
     <script src="config.js"></script>
     <script src="spotify-auth-player.js"></script>
@@ -20,9 +21,12 @@
       </div>
       <div id="genre-display">
         <h2 id="genre-name">?</h2>
-        <button id="start-roulette">Start Genre Roulette</button>
         <div id="timer-display"></div>
         <div id="track-info"></div>
+      </div>
+      <div class="button-row">
+        <button id="start-roulette">Start Genre Roulette</button>
+        <button id="skip-genre" style="display:none">Skip</button>
       </div>
     </div>
   </body>

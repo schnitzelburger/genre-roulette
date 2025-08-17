@@ -142,21 +142,44 @@ button:disabled {
 }
 
 @media (max-width: 480px) {
+  .container {
+    padding: 0 8px;
+  }
   h1 {
-    font-size: 1.6rem;
-    margin: 10px 0 15px 0;
+    font-size: 1.5rem;
+    margin: 12px 0 18px 0;
+  }
+  #spotify-status {
+    padding: 16px;
+    border-radius: 14px;
+    font-size: 1.15rem;
+    max-width: 99%;
   }
   #genre-display {
-    padding: 12px;
-    border-radius: 10px;
-  }
-  button {
-    font-size: 0.95rem;
-    padding: 10px 18px;
-    max-width: 100%;
-    margin: 8px auto;
+    padding: 18px;
+    border-radius: 14px;
+    margin: 18px auto;
+    max-width: 99%;
   }
   #genre-name {
+    font-size: 2rem;
+    margin-bottom: 16px;
+  }
+  #timer-display {
+    font-size: 1.6em;
+    margin-top: 12px;
+  }
+  #track-info {
+    font-size: 1.2em;
+    padding: 12px 14px;
+    margin-top: 14px;
+  }
+  button {
     font-size: 1.2rem;
+    padding: 14px 20px;
+    max-width: 100%;
+    margin: 10px auto;
+    min-height: 48px;
+    border-radius: 24px;
   }
 }

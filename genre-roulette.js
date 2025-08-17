@@ -84,6 +84,7 @@ function updateTrackInfo(track, artist) {
 
 let timerInterval = null;
 let trackInterval = null;
+let skipBtn = null;
 
 function startRoulette() {
   if (isPaused) return;
@@ -97,6 +98,24 @@ function startRoulette() {
   playGenrePlaylist(currentGenre.playlistId);
   document.getElementById('start-roulette').style.display = 'none';
   document.getElementById('next-genre').style.display = 'none';
+  // Skip-Button anzeigen
+  if (!skipBtn) {
+    skipBtn = document.createElement('button');
+    skipBtn.id = 'skip-genre';
+    skipBtn.textContent = 'Skip';
+    skipBtn.style.display = 'inline-block';
+    skipBtn.style.marginTop = '10px';
+    document.getElementById('genre-display').appendChild(skipBtn);
+    skipBtn.addEventListener('click', () => {
+      isPaused = false;
+      clearTimeout(timer);
+      clearInterval(timerInterval);
+      clearInterval(trackInterval);
+      startRoulette();
+    });
+  } else {
+    skipBtn.style.display = 'inline-block';
+  }
   if (timer) clearTimeout(timer);
   if (timerInterval) clearInterval(timerInterval);
   let secondsLeft = GENRE_DURATION_MINUTES * 60;
@@ -118,6 +137,8 @@ function startRoulette() {
     updateTimerDisplay(0);
     clearInterval(timerInterval);
     clearInterval(trackInterval);
+    // Skip-Button ausblenden
+    if (skipBtn) skipBtn.style.display = 'none';
   }, GENRE_DURATION_MINUTES * 60 * 1000);
 }
 
@@ -193,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (loginBtn) {
     loginBtn.onclick = () => {
       console.log('Login-Button wurde geklickt');
-      alert('Login-Button wurde geklickt!');
       if (window.spotifyAuth && typeof window.spotifyAuth.redirectToSpotifyAuth === 'function') {
         window.spotifyAuth.redirectToSpotifyAuth();
       } else {

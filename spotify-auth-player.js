@@ -52,7 +52,6 @@ async function exchangeCodeForToken(authCode) {
 
 async function redirectToSpotifyAuth() {
     console.log('redirectToSpotifyAuth wird ausgeführt');
-    alert('redirectToSpotifyAuth wird ausgeführt!');
     if (!SPOTIFY_CLIENT_ID || !REDIRECT_URI || !SCOPES) {
         alert('Spotify Konfiguration fehlt! Bitte prüfe config.js.');
         return;
@@ -72,7 +71,6 @@ async function redirectToSpotifyAuth() {
         return;
     }
     console.log('Redirect zu:', authUrl);
-    alert('Redirect zu: ' + authUrl);
     window.location.href = authUrl;
 }
 
@@ -100,6 +98,26 @@ async function getAccessToken() {
     return null;
 }
 
+async function validateAccessToken(token) {
+    if (!token) return false;
+    try {
+        const response = await fetch('https://api.spotify.com/v1/me', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.ok) {
+            return true;
+        } else if (response.status === 401) {
+            localStorage.removeItem('spotifyAccessToken');
+            spotifyAccessToken = null;
+            return false;
+        } else {
+            return false;
+        }
+    } catch (error) {
+        return false;
+    }
+}
+
 // --- Spotify Player ---
 let spotifyAccessToken = null;
 let spotifyDeviceId = null;
@@ -107,13 +125,68 @@ let spotifyPlayer = null;
 let isPlaying = false;
 let currentTrackUri = null;
 
-function initializeSpotifyPlayer(accessToken) {
+async function initializeSpotifyPlayer(accessToken) {
+    // Token vor Connect validieren
+    let validToken = await window.spotifyAuth.getAccessToken();
+    const isValid = await window.spotifyAuth.validateAccessToken(validToken);
+    if (!isValid) {
+        if (document.getElementById('status-text')) {
+            document.getElementById('status-text').textContent = 'Spotify Token ungültig. Bitte neu einloggen.';
+        }
+        if (document.getElementById('reset-auth')) {
+            document.getElementById('reset-auth').style.display = 'inline-block';
+        }
+        return;
+    }
+    
     spotifyPlayer = new Spotify.Player({
         name: 'Genre Roulette Player',
-        getOAuthToken: cb => { cb(accessToken); },
+        getOAuthToken: cb => { cb(validToken); },
         volume: 1.0
     });
-    spotifyPlayer.connect();
+
+    // Fehler- und Status-Events abfangen
+    spotifyPlayer.addListener('initialization_error', ({ message }) => {
+        if (document.getElementById('status-text')) {
+            document.getElementById('status-text').textContent = 'Player-Fehler: ' + message;
+        }
+        if (document.getElementById('reset-auth')) {
+            document.getElementById('reset-auth').style.display = 'inline-block';
+        }
+    });
+
+    spotifyPlayer.addListener('authentication_error', ({ message }) => {
+        if (document.getElementById('status-text')) {
+            document.getElementById('status-text').textContent = 'Authentifizierungsfehler: ' + message;
+        }
+        if (document.getElementById('reset-auth')) {
+            document.getElementById('reset-auth').style.display = 'inline-block';
+        }
+    });
+
+    spotifyPlayer.addListener('account_error', ({ message }) => {
+        if (document.getElementById('status-text')) {
+            document.getElementById('status-text').textContent = 'Account-Fehler: ' + message;
+        }
+        if (document.getElementById('reset-auth')) {
+            document.getElementById('reset-auth').style.display = 'inline-block';
+        }
+    });
+
+    spotifyPlayer.addListener('playback_error', ({ message }) => {
+        if (document.getElementById('status-text')) {
+            document.getElementById('status-text').textContent = 'Playback-Fehler: ' + message;
+        }
+    });
+
+    console.log('Connecting Spotify Player...');
+    spotifyPlayer.connect().then(success => {
+        if (success) {
+            console.log('Spotify Player successfully connected');
+        } else {
+            console.error('Spotify Player connection failed');
+        }
+    });
 }
 
 window.onSpotifyWebPlaybackSDKReady = () => {
@@ -133,6 +206,7 @@ window.spotifyAuth = {
     setSpotifyDeviceId: (id) => { spotifyDeviceId = id; },
     setIsPlaying: (val) => { isPlaying = val; },
     setCurrentTrackUri: (uri) => { currentTrackUri = uri; },
+    validateAccessToken,
     async fetchCurrentTrack(updateTrackInfo) {
         const token = window.spotifyAuth.getSpotifyAccessToken();
         const res = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
