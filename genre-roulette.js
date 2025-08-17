@@ -85,6 +85,7 @@ function updateTrackInfo(track, artist) {
 let timerInterval = null;
 let trackInterval = null;
 let skipBtn = null;
+let skipUsedForCurrentGenre = false; // Skip-Flag pro Genre
 
 function startRoulette() {
   if (isPaused) return;
@@ -94,27 +95,43 @@ function startRoulette() {
     return;
   }
   currentGenre = getRandomGenreNoRepeat();
+  skipUsedForCurrentGenre = false; // Reset skip-Flag bei neuem Genre
   updateGenreDisplay(currentGenre.name);
   playGenrePlaylist(currentGenre.playlistId);
   document.getElementById('start-roulette').style.display = 'none';
   document.getElementById('next-genre').style.display = 'none';
   // Skip-Button anzeigen
+  let skipBtn = document.getElementById('skip-track');
   if (!skipBtn) {
     skipBtn = document.createElement('button');
-    skipBtn.id = 'skip-genre';
-    skipBtn.textContent = 'Skip';
+    skipBtn.id = 'skip-track';
+    skipBtn.textContent = 'Skip Track';
+    const skipNote = document.createElement('div');
+    skipNote.textContent = '(only once per genre)';
+    skipNote.style.fontSize = '0.7em';
+    skipBtn.appendChild(skipNote);
     skipBtn.style.display = 'inline-block';
     skipBtn.style.marginTop = '10px';
-    document.getElementById('genre-display').appendChild(skipBtn);
+    const buttonRow = document.querySelector('.button-row');
+    if (buttonRow) buttonRow.appendChild(skipBtn);
     skipBtn.addEventListener('click', () => {
-      isPaused = false;
-      clearTimeout(timer);
-      clearInterval(timerInterval);
-      clearInterval(trackInterval);
-      startRoulette();
+      if (!skipUsedForCurrentGenre) {
+        window.spotifyAuth.skipCurrentTrack();
+        skipUsedForCurrentGenre = true;
+        skipBtn.disabled = true;
+      }
     });
+    skipBtn.disabled = false;
   } else {
     skipBtn.style.display = 'inline-block';
+    skipBtn.onclick = () => {
+      if (!skipUsedForCurrentGenre) {
+        window.spotifyAuth.skipCurrentTrack();
+        skipUsedForCurrentGenre = true;
+        skipBtn.disabled = true;
+      }
+    };
+    skipBtn.disabled = false;
   }
   if (timer) clearTimeout(timer);
   if (timerInterval) clearInterval(timerInterval);

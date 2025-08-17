@@ -122,6 +122,20 @@ button:disabled {
   font-weight: 700;
 }
 
+.button-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  margin-top: 18px;
+  width: 100%;
+}
+
+.button-row button {
+  margin: 0;
+}
+
 @media (max-width: 768px) {
   h1 {
     font-size: 1.8rem;

@@ -179,6 +179,14 @@ async function initializeSpotifyPlayer(accessToken) {
         }
     });
 
+    spotifyPlayer.addListener('ready', ({ device_id }) => {
+        spotifyDeviceId = device_id;
+        console.log('Spotify Player ready, device_id:', device_id);
+        if (document.getElementById('status-text')) {
+            document.getElementById('status-text').textContent = 'Player bereit';
+        }
+    });
+
     console.log('Connecting Spotify Player...');
     spotifyPlayer.connect().then(success => {
         if (success) {
@@ -223,6 +231,28 @@ window.spotifyAuth = {
             }
         } else {
             updateTrackInfo('', '');
+        }
+    },
+    async skipCurrentTrack() {
+        const deviceId = window.spotifyAuth.getSpotifyDeviceId();
+        if (!deviceId) {
+            alert('Spotify Player ist noch nicht bereit. Bitte kurz warten und erneut versuchen.');
+            return;
+        }
+        const res = await fetch(`https://api.spotify.com/v1/me/player/next?device_id=${deviceId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${window.spotifyAuth.getSpotifyAccessToken()}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!res.ok) {
+            try {
+                const data = await res.json();
+                alert('Error skipping track: ' + (data.error?.message || 'Unknown error'));
+            } catch {
+                alert('Error skipping track: Unknown error');
+            }
         }
     },
 };
