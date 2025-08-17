@@ -233,9 +233,9 @@ window.spotifyAuth = {
         }
     },
     async skipCurrentTrack() {
-        const deviceId = window.spotifyAuth.getSpotifyDeviceId();
+        const deviceId = window.selectedDeviceId || window.spotifyAuth.getSpotifyDeviceId();
         if (!deviceId) {
-            alert('Spotify Player is not ready yet. Please wait a moment and try again.');
+            alert('No Spotify device selected or ready. Please select a device and try again.');
             return;
         }
         const res = await fetch(`https://api.spotify.com/v1/me/player/next?device_id=${deviceId}`, {
@@ -254,4 +254,18 @@ window.spotifyAuth = {
             }
         }
     },
+    async fetchSpotifyDevices() {
+        const token = window.spotifyAuth.getSpotifyAccessToken();
+        const res = await fetch('https://api.spotify.com/v1/me/player/devices', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          if (document.getElementById('status-text')) {
+            document.getElementById('status-text').textContent = 'Error fetching devices';
+          }
+          return [];
+        }
+        const data = await res.json();
+        return data.devices || [];
+      },
 };
