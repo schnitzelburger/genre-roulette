@@ -23,16 +23,85 @@ h1 {
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-#spotify-status {
-  background: rgba(255, 255, 255, 0.95);
-  margin: 20px auto;
-  padding: 20px;
+/* Desktop & Tablet */
+#spotify-status,
+#genre-display {
+  max-width: 480px;
+  width: 100%;
+  margin: 24px auto;
+  padding: 24px;
   border-radius: 15px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.95);
   text-align: center;
-  max-width: 400px;
+  box-sizing: border-box;
+}
+
+.button-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  margin-top: 18px;
+  width: 100%;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.button-row button {
+  margin: 0;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .container {
+    padding: 0 4vw;
+  }
+  #spotify-status,
+  #genre-display {
+    max-width: 98vw;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 10px;
+    border-radius: 12px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .button-row {
+    width: 100%;
+    max-width: 98vw;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+    gap: 10px;
+  }
+  button {
+    font-size: 1rem;
+    padding: 10px 12px;
+    max-width: 100%;
+    margin: 6px auto;
+    min-height: 40px;
+    border-radius: 18px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  #genre-name {
+    font-size: 2.0rem;
+    margin-bottom: 12px;
+  }
+  #timer-display {
+    font-size: 1.1em;
+    margin-top: 8px;
+  }
+  #track-info {
+    font-size: 1em;
+    padding: 8px 8px;
+    margin-top: 10px;
+  }
 }
 
 #spotify-status strong {
@@ -80,18 +149,8 @@ button:disabled {
   transform: none;
 }
 
-#genre-display {
-  background: rgba(255,255,255,0.95);
-  margin: 30px auto;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-  text-align: center;
-  max-width: 400px;
-}
-
 #genre-name {
-  font-size: 2.5rem;
+  font-size: 3.0rem;
   font-weight: 700;
   color: #ff9800;
   margin-bottom: 20px;
@@ -110,7 +169,7 @@ button:disabled {
   font-size: 1.1em;
   margin-top: 18px;
   color: #444;
-  background: #fff3e0;
+  background: #fff;
   border-radius: 8px;
   padding: 10px 16px;
   box-shadow: 0 2px 8px rgba(255, 152, 0, 0.08);
@@ -122,78 +181,28 @@ button:disabled {
   font-weight: 700;
 }
 
-.button-row {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 18px;
-  margin-top: 18px;
-  width: 100%;
+.device-select {
+  font-size: 0.95em;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid #888;
+  background: #f8f8fa;
+  color: #222;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-width: 200px;
+  max-width: 320px;
 }
 
-.button-row button {
-  margin: 0;
+.device-select:focus {
+  border-color: #1db954;
+  box-shadow: 0 0 0 2px #1db95433;
+  outline: none;
 }
 
-@media (max-width: 768px) {
-  h1 {
-    font-size: 1.8rem;
-    margin: 15px 0 20px 0;
-  }
-  #genre-display {
-    padding: 18px;
-    max-width: 95%;
-  }
-  button {
-    font-size: 1rem;
-    padding: 12px 20px;
-    max-width: 280px;
-  }
-  #genre-name {
-    font-size: 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .container {
-    padding: 0 8px;
-  }
-  h1 {
-    font-size: 1.5rem;
-    margin: 12px 0 18px 0;
-  }
-  #spotify-status {
-    padding: 16px;
-    border-radius: 14px;
-    font-size: 1.15rem;
-    max-width: 99%;
-  }
-  #genre-display {
-    padding: 18px;
-    border-radius: 14px;
-    margin: 18px auto;
-    max-width: 99%;
-  }
-  #genre-name {
-    font-size: 2rem;
-    margin-bottom: 16px;
-  }
-  #timer-display {
-    font-size: 1.6em;
-    margin-top: 12px;
-  }
-  #track-info {
-    font-size: 1.2em;
-    padding: 12px 14px;
-    margin-top: 14px;
-  }
-  button {
-    font-size: 1.2rem;
-    padding: 14px 20px;
-    max-width: 100%;
-    margin: 10px auto;
-    min-height: 48px;
-    border-radius: 24px;
-  }
+.device-select option {
+  font-size: 0.95em;
+  padding: 4px 8px;
 }
