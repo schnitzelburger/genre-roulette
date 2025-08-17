@@ -1,4 +1,3 @@
-// --- Spotify OAuth ---
 const SPOTIFY_CLIENT_ID = window.CONFIG?.SPOTIFY_CLIENT_ID;
 const REDIRECT_URI = window.CONFIG?.REDIRECT_URI;
 const SCOPES = window.CONFIG?.SPOTIFY_SCOPES;
@@ -51,9 +50,9 @@ async function exchangeCodeForToken(authCode) {
 }
 
 async function redirectToSpotifyAuth() {
-    console.log('redirectToSpotifyAuth wird ausgeführt');
+    console.log('redirectToSpotifyAuth is running');
     if (!SPOTIFY_CLIENT_ID || !REDIRECT_URI || !SCOPES) {
-        alert('Spotify Konfiguration fehlt! Bitte prüfe config.js.');
+        alert('Spotify configuration missing! Please check config.js.');
         return;
     }
     const codeVerifier = generateCodeVerifier();
@@ -67,10 +66,10 @@ async function redirectToSpotifyAuth() {
         `&code_challenge=${codeChallenge}` +
         `&scope=${encodeURIComponent(SCOPES)}`;
     if (!authUrl || authUrl.length < 10) {
-        alert('Fehler beim Erstellen der Spotify Auth URL!');
+        alert('Error creating Spotify Auth URL!');
         return;
     }
-    console.log('Redirect zu:', authUrl);
+    console.log('Redirecting to:', authUrl);
     window.location.href = authUrl;
 }
 
@@ -126,12 +125,12 @@ let isPlaying = false;
 let currentTrackUri = null;
 
 async function initializeSpotifyPlayer(accessToken) {
-    // Token vor Connect validieren
+    // Validate token before connect
     let validToken = await window.spotifyAuth.getAccessToken();
     const isValid = await window.spotifyAuth.validateAccessToken(validToken);
     if (!isValid) {
         if (document.getElementById('status-text')) {
-            document.getElementById('status-text').textContent = 'Spotify Token ungültig. Bitte neu einloggen.';
+            document.getElementById('status-text').textContent = 'Spotify token invalid. Please log in again.';
         }
         if (document.getElementById('reset-auth')) {
             document.getElementById('reset-auth').style.display = 'inline-block';
@@ -145,10 +144,10 @@ async function initializeSpotifyPlayer(accessToken) {
         volume: 1.0
     });
 
-    // Fehler- und Status-Events abfangen
+    // Catch error and status events
     spotifyPlayer.addListener('initialization_error', ({ message }) => {
         if (document.getElementById('status-text')) {
-            document.getElementById('status-text').textContent = 'Player-Fehler: ' + message;
+            document.getElementById('status-text').textContent = 'Player error: ' + message;
         }
         if (document.getElementById('reset-auth')) {
             document.getElementById('reset-auth').style.display = 'inline-block';
@@ -157,7 +156,7 @@ async function initializeSpotifyPlayer(accessToken) {
 
     spotifyPlayer.addListener('authentication_error', ({ message }) => {
         if (document.getElementById('status-text')) {
-            document.getElementById('status-text').textContent = 'Authentifizierungsfehler: ' + message;
+            document.getElementById('status-text').textContent = 'Authentication error: ' + message;
         }
         if (document.getElementById('reset-auth')) {
             document.getElementById('reset-auth').style.display = 'inline-block';
@@ -166,7 +165,7 @@ async function initializeSpotifyPlayer(accessToken) {
 
     spotifyPlayer.addListener('account_error', ({ message }) => {
         if (document.getElementById('status-text')) {
-            document.getElementById('status-text').textContent = 'Account-Fehler: ' + message;
+            document.getElementById('status-text').textContent = 'Account error: ' + message;
         }
         if (document.getElementById('reset-auth')) {
             document.getElementById('reset-auth').style.display = 'inline-block';
@@ -175,7 +174,7 @@ async function initializeSpotifyPlayer(accessToken) {
 
     spotifyPlayer.addListener('playback_error', ({ message }) => {
         if (document.getElementById('status-text')) {
-            document.getElementById('status-text').textContent = 'Playback-Fehler: ' + message;
+            document.getElementById('status-text').textContent = 'Playback error: ' + message;
         }
     });
 
@@ -183,7 +182,7 @@ async function initializeSpotifyPlayer(accessToken) {
         spotifyDeviceId = device_id;
         console.log('Spotify Player ready, device_id:', device_id);
         if (document.getElementById('status-text')) {
-            document.getElementById('status-text').textContent = 'Player bereit';
+            document.getElementById('status-text').textContent = 'Player ready';
         }
     });
 
@@ -236,7 +235,7 @@ window.spotifyAuth = {
     async skipCurrentTrack() {
         const deviceId = window.spotifyAuth.getSpotifyDeviceId();
         if (!deviceId) {
-            alert('Spotify Player ist noch nicht bereit. Bitte kurz warten und erneut versuchen.');
+            alert('Spotify Player is not ready yet. Please wait a moment and try again.');
             return;
         }
         const res = await fetch(`https://api.spotify.com/v1/me/player/next?device_id=${deviceId}`, {
