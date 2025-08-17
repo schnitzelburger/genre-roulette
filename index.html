@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Genre Roulette</title>
+    <meta charset="UTF-8">
+    <script src="genres.js"></script>
+    <script src="config.js"></script>
+    <script src="spotify-auth-player.js"></script>
+    <script src="genre-roulette.js"></script>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <link rel="stylesheet" href="genre-roulette.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Genre Roulette</h1>
+      <div id="spotify-status">
+        <strong>Spotify Status:</strong>
+        <span id="status-text">Loading...</span>
+        <button id="reset-auth">Login Again</button>
+      </div>
+      <div id="genre-display">
+        <h2 id="genre-name">?</h2>
+        <button id="start-roulette">Start Genre Roulette</button>
+      </div>
+    </div>
+  </body>
+</html>
