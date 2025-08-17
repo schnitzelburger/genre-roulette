@@ -43,18 +43,52 @@ function getRandomGenreNoRepeat() {
   return genre;
 }
 
+// Zeitanzeige ergänzen
+function updateTimerDisplay(secondsLeft) {
+  let timerElem = document.getElementById('timer-display');
+  if (!timerElem) {
+    timerElem = document.createElement('div');
+    timerElem.id = 'timer-display';
+    timerElem.style.fontWeight = 'bold';
+    timerElem.style.marginTop = '10px';
+    document.getElementById('genre-display').appendChild(timerElem);
+  }
+  const min = Math.floor(secondsLeft / 60);
+  const sec = secondsLeft % 60;
+  timerElem.textContent = `Verbleibende Zeit: ${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+let timerInterval = null;
+
 function startRoulette() {
   if (isPaused) return;
+  const deviceId = window.spotifyAuth.getSpotifyDeviceId();
+  if (!deviceId) {
+    alert('Spotify Player ist noch nicht bereit. Bitte kurz warten und erneut versuchen.');
+    return;
+  }
   currentGenre = getRandomGenreNoRepeat();
   updateGenreDisplay(currentGenre.name);
   playGenrePlaylist(currentGenre.playlistId);
   document.getElementById('start-roulette').style.display = 'none';
   document.getElementById('next-genre').style.display = 'none';
   if (timer) clearTimeout(timer);
+  if (timerInterval) clearInterval(timerInterval);
+  let secondsLeft = 10 * 60;
+  updateTimerDisplay(secondsLeft);
+  timerInterval = setInterval(() => {
+    secondsLeft--;
+    updateTimerDisplay(secondsLeft);
+    if (secondsLeft <= 0) {
+      clearInterval(timerInterval);
+    }
+  }, 1000);
   timer = setTimeout(() => {
     pausePlayback();
     isPaused = true;
     document.getElementById('next-genre').style.display = 'inline-block';
+    updateTimerDisplay(0);
+    clearInterval(timerInterval);
   }, 10 * 60 * 1000); // 10 Minuten
 }
 

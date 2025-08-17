@@ -111,7 +111,7 @@ function initializeSpotifyPlayer(accessToken) {
     spotifyPlayer = new Spotify.Player({
         name: 'Genre Roulette Player',
         getOAuthToken: cb => { cb(accessToken); },
-        volume: 0.8
+        volume: 1.0
     });
     spotifyPlayer.connect();
 }
