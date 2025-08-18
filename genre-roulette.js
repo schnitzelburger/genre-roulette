@@ -236,12 +236,23 @@ function showDeviceSelection(devices) {
   container.appendChild(select);
 }
 
+function setShuffle(deviceId, state = true) {
+  return fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${state}&device_id=${deviceId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${window.spotifyAuth.getSpotifyAccessToken()}`
+    }
+  });
+}
+
 function playGenrePlaylist(playlistId) {
   const deviceId = selectedDeviceId || window.spotifyAuth.getSpotifyDeviceId();
   if (!deviceId) {
     alert('No Spotify device selected or ready. Please select a device and try again.');
     return;
   }
+  // Enable shuffle mode
+  setShuffle(deviceId, true);
   fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
     method: 'PUT',
     headers: {
