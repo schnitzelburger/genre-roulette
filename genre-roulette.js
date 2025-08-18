@@ -10,6 +10,23 @@ let timer = null;
 let previousGenre = null;
 let isPaused = false;
 let selectedDeviceId = null;
+let wakeLock = null;
+
+function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').then(lock => {
+      wakeLock = lock;
+      lock.addEventListener('release', () => { wakeLock = null; });
+    }).catch(() => {});
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release();
+    wakeLock = null;
+  }
+}
 
 function getDurationFromUrl() {
     const params = new URLSearchParams(window.location.search);
@@ -159,6 +176,7 @@ function pausePlayback() {
   }).then(res => {
     if (res.ok) {
       document.getElementById('status-text').textContent = 'Paused';
+    releaseWakeLock();
     } else {
       res.json().then(data => {
         alert('Error pausing playback: ' + (data.error?.message || 'Unknown error'));
@@ -251,6 +269,7 @@ function playGenrePlaylist(playlistId) {
     alert('No Spotify device selected or ready. Please select a device and try again.');
     return;
   }
+  requestWakeLock();
   // Enable shuffle mode
   setShuffle(deviceId, true);
   fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
