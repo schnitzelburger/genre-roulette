@@ -123,7 +123,8 @@ function startRoulette() {
     if (buttonRow) buttonRow.appendChild(skipBtn);
     skipBtn.addEventListener('click', () => {
       if (!skipUsedForCurrentGenre) {
-        window.spotifyAuth.skipCurrentTrack();
+        const deviceId = selectedDeviceId || window.spotifyAuth.getSpotifyDeviceId();
+        window.spotifyAuth.skipCurrentTrack(deviceId);
         skipUsedForCurrentGenre = true;
         skipBtn.disabled = true;
       }
@@ -167,7 +168,8 @@ function startRoulette() {
 }
 
 function pausePlayback() {
-  fetch('https://api.spotify.com/v1/me/player/pause?device_id=' + window.spotifyAuth.getSpotifyDeviceId(), {
+  const deviceId = selectedDeviceId || window.spotifyAuth.getSpotifyDeviceId();
+  fetch('https://api.spotify.com/v1/me/player/pause?device_id=' + deviceId, {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${window.spotifyAuth.getSpotifyAccessToken()}`,
@@ -260,6 +262,14 @@ function setShuffle(deviceId, state = true) {
     headers: {
       'Authorization': `Bearer ${window.spotifyAuth.getSpotifyAccessToken()}`
     }
+  })
+  .then(response => {
+      if (!response.ok) {
+        alert("Fehler beim Setzen von Shuffle: " + response.status);
+      }
+    })
+    .catch(error => {
+      alert("Netzwerk- oder API-Fehler: " + error);
   });
 }
 

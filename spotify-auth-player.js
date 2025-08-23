@@ -232,8 +232,7 @@ window.spotifyAuth = {
             updateTrackInfo('', '');
         }
     },
-    async skipCurrentTrack() {
-        const deviceId = window.selectedDeviceId || window.spotifyAuth.getSpotifyDeviceId();
+    async skipCurrentTrack(deviceId) {
         if (!deviceId) {
             alert('No Spotify device selected or ready. Please select a device and try again.');
             return;
