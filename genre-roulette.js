@@ -229,7 +229,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginBtn = document.getElementById('reset-auth');
   if (loginBtn) {
     loginBtn.onclick = () => {
-      if (window.spotifyAuth && typeof window.spotifyAuth.redirectToSpotifyAuth === 'function') {
+      if (window.spotifyAuth && typeof window.spotifyAuth.clearStoredTokens === 'function' && typeof window.spotifyAuth.redirectToSpotifyAuth === 'function') {
+        window.spotifyAuth.clearStoredTokens();
         window.spotifyAuth.redirectToSpotifyAuth();
       } else {
         alert('Spotify Auth function not available. Please reload the page.');
