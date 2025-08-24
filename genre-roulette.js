@@ -30,7 +30,6 @@ async function initializeSpotify() {
     return;
   }
   document.getElementById('status-text').textContent = 'Logged in';
-  document.getElementById('reset-auth').style.display = 'none';
 
   // Player init only when SDK is ready
   window.addEventListener('SpotifySDKReady', () => {
