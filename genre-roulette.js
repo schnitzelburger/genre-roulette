@@ -48,6 +48,7 @@ async function initializeSpotify() {
     return;
   }
   document.getElementById('status-text').textContent = 'Logged in';
+  
   // Player init only when SDK is ready
   window.addEventListener('SpotifySDKReady', () => {
     window.spotifyAuth.initializeSpotifyPlayer(accessToken);
@@ -59,8 +60,6 @@ async function initializeSpotify() {
       });
     }
   });
-  // document.getElementById('reset-auth').style.display = 'none';
-  // Do NOT initialize Web Playback SDK automatically
 }
 
 function getRandomGenreNoRepeat() {
