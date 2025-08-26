@@ -84,9 +84,13 @@ function updateTrackInfo(track, artist) {
     infoElem.style.marginTop = '18px';
     document.getElementById('genre-display').appendChild(infoElem);
   }
-  infoElem.innerHTML = track && artist
-    ? `<strong>${track}</strong><br><span>${artist}</span>`
-    : '';
+  if (track && artist) {
+    infoElem.innerHTML = `<strong>${track}</strong><br><span>${artist}</span>`;
+    infoElem.style.display = 'block';
+  } else {
+    infoElem.innerHTML = '';
+    infoElem.style.display = 'none';
+  }
 }
 
 let timerInterval = null;
@@ -95,6 +99,12 @@ let skipBtn = null;
 let skipUsedForCurrentGenre = false;
 
 function startRoulette() {
+  // Show loading symbol in track-info while waiting for track/artist
+  let infoElem = document.getElementById('track-info');
+  if (infoElem) {
+    infoElem.innerHTML = '<span class="loader"></span>';
+    infoElem.style.display = 'block';
+  }
   if (isPaused) return;
   const deviceId = selectedDeviceId || window.spotifyAuth.getSpotifyDeviceId();
   if (!deviceId) {
@@ -107,6 +117,7 @@ function startRoulette() {
   playGenrePlaylist(currentGenre.playlistId);
   document.getElementById('start-roulette').style.display = 'none';
   document.getElementById('next-genre').style.display = 'none';
+  document.getElementById('device-select').disabled = true;
   // Show skip button
   let skipBtn = document.getElementById('skip-track');
   if (!skipBtn) {
@@ -123,6 +134,12 @@ function startRoulette() {
     if (buttonRow) buttonRow.appendChild(skipBtn);
     skipBtn.addEventListener('click', () => {
       if (!skipUsedForCurrentGenre) {
+        // Show loader in track-info when skipping
+        let infoElem = document.getElementById('track-info');
+        if (infoElem) {
+          infoElem.innerHTML = '<span class="loader"></span>';
+          infoElem.style.display = 'block';
+        }
         const deviceId = selectedDeviceId || window.spotifyAuth.getSpotifyDeviceId();
         window.spotifyAuth.skipCurrentTrack(deviceId);
         skipUsedForCurrentGenre = true;
@@ -134,6 +151,12 @@ function startRoulette() {
     skipBtn.style.display = 'inline-block';
     skipBtn.onclick = () => {
       if (!skipUsedForCurrentGenre) {
+        // Show loader in track-info when skipping
+        let infoElem = document.getElementById('track-info');
+        if (infoElem) {
+          infoElem.innerHTML = '<span class="loader"></span>';
+          infoElem.style.display = 'block';
+        }
         window.spotifyAuth.skipCurrentTrack();
         skipUsedForCurrentGenre = true;
         skipBtn.disabled = true;
@@ -164,6 +187,7 @@ function startRoulette() {
     clearInterval(timerInterval);
     clearInterval(trackInterval);
     if (skipBtn) skipBtn.style.display = 'none';
+    document.getElementById('device-select').disabled = false;
   }, GENRE_DURATION_MINUTES * 60 * 1000);
 }
 
@@ -203,11 +227,13 @@ function showDeviceSelection(devices) {
   const select = document.createElement('select');
   select.id = 'device-select';
   select.className = 'device-select';
+  select.disabled = false;
   // Add Web Player option
   const webPlayerOption = document.createElement('option');
   webPlayerOption.value = 'web-playback-sdk';
   webPlayerOption.textContent = 'Web Player (this browser)';
   select.appendChild(webPlayerOption);
+  // Add spotify devices
   devices.forEach(device => {
     console.log('Device:', device);
     const option = document.createElement('option');
@@ -306,9 +332,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initializeSpotify();
   // Fetch and show devices
   const devices = await window.spotifyAuth.fetchSpotifyDevices();
-  if (devices.length > 0) {
-    showDeviceSelection(devices);
-  } else {
+  showDeviceSelection(devices);
+  if (devices.length === 0) {
     document.getElementById('status-text').textContent = 'No Spotify devices found. Please start playback in your Spotify app.';
   }
   document.getElementById('start-roulette').addEventListener('click', () => {
@@ -322,10 +347,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     nextBtn.id = 'next-genre';
     nextBtn.textContent = 'Next Genre';
     nextBtn.style.display = 'none';
-    document.getElementById('genre-display').appendChild(nextBtn);
+    document.getElementById('button-row').appendChild(nextBtn);
   }
   nextBtn.addEventListener('click', () => {
     isPaused = false;
+    document.getElementById('device-select').disabled = false;
     startRoulette();
   });
   const loginBtn = document.getElementById('reset-auth');
