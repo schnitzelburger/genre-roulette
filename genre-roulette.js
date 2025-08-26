@@ -48,7 +48,6 @@ async function initializeSpotify() {
     return;
   }
   document.getElementById('status-text').textContent = 'Logged in';
-  // document.getElementById('reset-auth').style.display = 'none';
   // Do NOT initialize Web Playback SDK automatically
 }
 
@@ -329,40 +328,73 @@ function playGenrePlaylist(playlistId) {
 
 // UI setup
 document.addEventListener('DOMContentLoaded', async () => {
+  // --- 1. Spotify Auth ---
   await initializeSpotify();
-  // Fetch and show devices
+  setupLoginButton();
+
+  const accessToken = await window.spotifyAuth.getAccessToken();
+  if (!accessToken) {
+    showLoginState();
+    return;
+  }
+
+  // --- 2. Device Selection ---
   const devices = await window.spotifyAuth.fetchSpotifyDevices();
   showDeviceSelection(devices);
   if (devices.length === 0) {
-    document.getElementById('status-text').textContent = 'No Spotify devices found. Please start playback in your Spotify app.';
+    showNoDevicesState();
   }
-  document.getElementById('start-roulette').addEventListener('click', () => {
-    isPaused = false;
-    startRoulette();
-  });
-  // Button for next genre
-  let nextBtn = document.getElementById('next-genre');
-  if (!nextBtn) {
-    nextBtn = document.createElement('button');
-    nextBtn.id = 'next-genre';
-    nextBtn.textContent = 'Next Genre';
-    nextBtn.style.display = 'none';
-    document.getElementById('button-row').appendChild(nextBtn);
+
+  // --- 3. UI Button Setup ---
+  setupRouletteButtons();
+
+  // --- Helper Functions ---
+  function showLoginState() {
+    document.getElementById('status-text').textContent = 'Login to Spotify';
+    const deviceContainer = document.getElementById('device-select-container');
+    if (deviceContainer) deviceContainer.style.display = 'none';
   }
-  nextBtn.addEventListener('click', () => {
-    isPaused = false;
-    document.getElementById('device-select').disabled = false;
-    startRoulette();
-  });
-  const loginBtn = document.getElementById('reset-auth');
-  if (loginBtn) {
-    loginBtn.onclick = () => {
-      if (window.spotifyAuth && typeof window.spotifyAuth.redirectToSpotifyAuth === 'function' && typeof window.spotifyAuth.clearStoredTokens === 'function') {
-        window.spotifyAuth.clearStoredTokens();
-        window.spotifyAuth.redirectToSpotifyAuth();
-      } else {
-        alert('Spotify Auth function not available. Please reload the page.');
-      }
-    };
+
+  function showNoDevicesState() {
+    document.getElementById('status-text').textContent = 'No Spotify devices found. Start playback in your Spotify app or use the Web Player.';
+  }
+
+  function setupRouletteButtons() {
+    // Start button
+    const startBtn = document.getElementById('start-roulette');
+    if (startBtn) {
+      startBtn.addEventListener('click', () => {
+        isPaused = false;
+        startRoulette();
+      });
+    }
+    // Next genre button
+    let nextBtn = document.getElementById('next-genre');
+    if (!nextBtn) {
+      nextBtn = document.createElement('button');
+      nextBtn.id = 'next-genre';
+      nextBtn.textContent = 'Next Genre';
+      nextBtn.style.display = 'none';
+      document.getElementById('button-row').appendChild(nextBtn);
+    }
+    nextBtn.addEventListener('click', () => {
+      isPaused = false;
+      document.getElementById('device-select').disabled = false;
+      startRoulette();
+    });
+  }
+
+  function setupLoginButton() {
+    const loginBtn = document.getElementById('reset-auth');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', () => {
+        if (window.spotifyAuth && typeof window.spotifyAuth.redirectToSpotifyAuth === 'function' && typeof window.spotifyAuth.clearStoredTokens === 'function') {
+          window.spotifyAuth.clearStoredTokens();
+          window.spotifyAuth.redirectToSpotifyAuth();
+        } else {
+          alert('Spotify Auth function not available. Please reload the page.');
+        }
+      });
+    }
   }
 });
