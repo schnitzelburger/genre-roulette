@@ -73,6 +73,13 @@ async function redirectToSpotifyAuth() {
     window.location.href = authUrl;
 }
 
+function clearStoredTokens() {
+    localStorage.removeItem('spotifyAccessToken');
+    localStorage.removeItem('spotify_code_verifier');
+    spotifyAccessToken = null;
+    console.log('Cleared stored Spotify tokens');
+}
+
 async function getAccessToken() {
     let token = localStorage.getItem('spotifyAccessToken');
     if (token) {
@@ -204,6 +211,7 @@ window.onSpotifyWebPlaybackSDKReady = () => {
 window.spotifyAuth = {
     getAccessToken,
     redirectToSpotifyAuth,
+    clearStoredTokens,
     initializeSpotifyPlayer,
     getSpotifyPlayer: () => spotifyPlayer,
     getSpotifyDeviceId: () => spotifyDeviceId,

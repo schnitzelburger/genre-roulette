@@ -48,7 +48,7 @@ async function initializeSpotify() {
     return;
   }
   document.getElementById('status-text').textContent = 'Logged in';
-  document.getElementById('reset-auth').style.display = 'none';
+  // document.getElementById('reset-auth').style.display = 'none';
   // Do NOT initialize Web Playback SDK automatically
 }
 
@@ -197,7 +197,7 @@ function showDeviceSelection(devices) {
     container = document.createElement('div');
     container.id = 'device-select-container';
     container.style.margin = '8px 0';
-    document.getElementById('spotify-status').appendChild(container);
+    document.getElementById('spotify-status').insertBefore(container, document.getElementById('reset-auth'));
   }
   container.innerHTML = '<strong>Select playback device:</strong><br>';
   const select = document.createElement('select');
@@ -331,7 +331,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const loginBtn = document.getElementById('reset-auth');
   if (loginBtn) {
     loginBtn.onclick = () => {
-      if (window.spotifyAuth && typeof window.spotifyAuth.redirectToSpotifyAuth === 'function') {
+      if (window.spotifyAuth && typeof window.spotifyAuth.redirectToSpotifyAuth === 'function' && typeof window.spotifyAuth.clearStoredTokens === 'function') {
+        window.spotifyAuth.clearStoredTokens();
         window.spotifyAuth.redirectToSpotifyAuth();
       } else {
         alert('Spotify Auth function not available. Please reload the page.');
