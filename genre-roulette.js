@@ -1,10 +1,9 @@
 const GENRES = window.GENRES;
 
 const PREVIOUS_GENRES_LIMIT = 3;
-let GENRE_DURATION_MINUTES = 15;
-// Check for URL parameter to override default duration
+// Check for URL parameter to override default duration (15 minutes)
 const urlGenreDuration = getDurationFromUrl();
-if (urlGenreDuration) GENRE_DURATION_MINUTES = urlGenreDuration;
+const GENRE_DURATION_MINUTES = urlGenreDuration ? urlGenreDuration : 15;
 
 let currentGenre = null;
 let timer = null;
@@ -349,12 +348,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.log('Restored previous genres from cookie:', genreNames);
     } catch (e) { previousGenres = []; }
   }
-  // --- 1. Spotify Auth ---
+
+  // --- 1. Spotify Auth & Token Validation ---
   await initializeSpotify();
   setupLoginButton();
 
   const accessToken = await window.spotifyAuth.getAccessToken();
-  if (!accessToken) {
+  const isValidToken = await window.spotifyAuth.validateAccessToken(accessToken);
+  if (!accessToken || !isValidToken) {
     showLoginState();
     return;
   }
