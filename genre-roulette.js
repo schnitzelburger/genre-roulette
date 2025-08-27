@@ -1,5 +1,6 @@
 const GENRES = window.GENRES;
 
+const PREVIOUS_GENRES_LIMIT = 3;
 let GENRE_DURATION_MINUTES = 15;
 // Check for URL parameter to override default duration
 const urlGenreDuration = getDurationFromUrl();
@@ -7,7 +8,7 @@ if (urlGenreDuration) GENRE_DURATION_MINUTES = urlGenreDuration;
 
 let currentGenre = null;
 let timer = null;
-let previousGenre = null;
+let previousGenres = [];
 let isPaused = false;
 let selectedDeviceId = null;
 let wakeLock = null;
@@ -52,12 +53,20 @@ async function initializeSpotify() {
 }
 
 function getRandomGenreNoRepeat() {
-  if (GENRES.length < 2) return getRandomGenre();
+  if (GENRES.length <= PREVIOUS_GENRES_LIMIT) return getRandomGenre();
   let genre;
+  let attempts = 0;
   do {
     genre = getRandomGenre();
-  } while (previousGenre && genre.name === previousGenre.name);
-  previousGenre = genre;
+    attempts++;
+    // break after 10 attempts to avoid infinite loop if all genres are in previousGenres
+    if (attempts > 10) break;
+  } while (previousGenres.some(g => g.name === genre.name));
+  // Update previousGenres
+  previousGenres.push(genre);
+  if (previousGenres.length > PREVIOUS_GENRES_LIMIT) previousGenres.shift();
+  // Save to cookie
+  document.cookie = `previousGenres=${encodeURIComponent(JSON.stringify(previousGenres.map(g => g.name)))};path=/;max-age=86400`;
   return genre;
 }
 
@@ -328,6 +337,18 @@ function playGenrePlaylist(playlistId) {
 
 // UI setup
 document.addEventListener('DOMContentLoaded', async () => {
+  // Restore previousGenres from cookie
+  const cookieMatch = document.cookie.match(/previousGenres=([^;]+)/);
+  if (cookieMatch) {
+    try {
+      const genreNames = JSON.parse(decodeURIComponent(cookieMatch[1]));
+      previousGenres = genreNames.map(name => {
+        return GENRES.find(g => g.name === name);
+      }).filter(Boolean);
+      console.log('cookies: ', document.cookie);
+      console.log('Restored previous genres from cookie:', genreNames);
+    } catch (e) { previousGenres = []; }
+  }
   // --- 1. Spotify Auth ---
   await initializeSpotify();
   setupLoginButton();
