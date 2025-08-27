@@ -113,7 +113,17 @@ function startRoulette() {
     infoElem.style.display = 'block';
   }
   if (isPaused) return;
-  const deviceId = selectedDeviceId || window.spotifyAuth.getSpotifyDeviceId();
+  let deviceId;
+  // If Web Player is selected, use SDK deviceId
+  if (selectedDeviceId === 'web-playback-sdk' || selectedDeviceId === null) {
+    deviceId = window.spotifyAuth.getSpotifyDeviceId();
+    if (!deviceId) {
+      alert('Web Player is starting. Please wait a moment and try again.');
+      return;
+    }
+  } else {
+    deviceId = selectedDeviceId;
+  }
   if (!deviceId) {
     alert('No Spotify device selected or ready. Please select a device and try again.');
     return;
@@ -240,8 +250,18 @@ function showDeviceSelection(devices) {
   webPlayerOption.value = 'web-playback-sdk';
   webPlayerOption.textContent = 'Web Player (this browser)';
   select.appendChild(webPlayerOption);
-  // Add spotify devices
-  devices.forEach(device => {
+  // Filter out duplicate Web Playback SDK device
+  const filteredDevices = devices.filter(device => {
+    // Remove Web Playback SDK device if its name is 'Genre Roulette Player' and type is 'Computer'
+    if (device.type === 'Computer' && device.name === 'Genre Roulette Player') {
+      console.log('Filtered out duplicate Web Playback SDK device:', device);
+      return false;
+    }
+    // Otherwise keep
+    return true;
+  });
+  // Add filtered devices to the select dropdown
+  filteredDevices.forEach(device => {
     console.log('Device:', device);
     const option = document.createElement('option');
     option.value = device.id;
@@ -249,19 +269,24 @@ function showDeviceSelection(devices) {
     select.appendChild(option);
   });
   // Default selection logic
-  let defaultDevice = devices.find(d => d.is_active);
+  let defaultDevice = filteredDevices.find(d => d.is_active);
+  if (defaultDevice) console.log('Default active device found:', defaultDevice);
   if (!defaultDevice) {
-    defaultDevice = devices.find(d => d.type === 'Smartphone');
+    defaultDevice = filteredDevices.find(d => d.type === 'Smartphone');
+    if (defaultDevice) console.log('Default smartphone device found:', defaultDevice);
   }
-  if (!defaultDevice && devices.length > 0) {
-    defaultDevice = devices[0];
+  if (!defaultDevice && filteredDevices.length > 0) {
+    defaultDevice = filteredDevices[0];
+    console.log('No default device found, using first device:', defaultDevice);
   }
   // If no device, default to web player
   if (!defaultDevice) {
+    console.log('No default device found, using Web Player');
     select.value = 'web-playback-sdk';
     selectedDeviceId = null;
     document.getElementById('status-text').textContent = 'Selected device: Web Player (this browser)';
   } else {
+    console.log('Default device found:', defaultDevice);
     select.value = defaultDevice.id;
     selectedDeviceId = defaultDevice.id;
     document.getElementById('status-text').textContent = 'Selected device: ' + defaultDevice.name;
@@ -271,21 +296,34 @@ function showDeviceSelection(devices) {
       // Initialize Web Playback SDK only when selected
       await window.spotifyAuth.initializeSpotifyPlayer(await window.spotifyAuth.getAccessToken());
       // Wait for SDK ready and set deviceId
-      window.addEventListener('SpotifySDKReady', () => {
-        const player = window.spotifyAuth.getSpotifyPlayer();
-        if (player) {
-          player.addListener('ready', ({ device_id }) => {
-            window.spotifyAuth.setSpotifyDeviceId(device_id);
-            selectedDeviceId = device_id;
-            document.getElementById('status-text').textContent = 'Selected device: Web Player (this browser)';
-          });
-        }
-      });
+      const player = window.spotifyAuth.getSpotifyPlayer();
+      if (player) {
+        player.addListener('ready', ({ device_id }) => {
+          window.spotifyAuth.setSpotifyDeviceId(device_id);
+          selectedDeviceId = device_id;
+          document.getElementById('status-text').textContent = 'Selected device: Web Player (this browser)';
+        });
+      }
     } else {
       selectedDeviceId = select.value;
       document.getElementById('status-text').textContent = 'Selected device: ' + select.options[select.selectedIndex].text;
     }
   };
+
+  // If Web Player is preselected, initialize SDK immediately
+  if (select.value === 'web-playback-sdk') {
+    (async () => {
+      await window.spotifyAuth.initializeSpotifyPlayer(await window.spotifyAuth.getAccessToken());
+      const player = window.spotifyAuth.getSpotifyPlayer();
+      if (player) {
+        player.addListener('ready', ({ device_id }) => {
+          window.spotifyAuth.setSpotifyDeviceId(device_id);
+          selectedDeviceId = device_id;
+          document.getElementById('status-text').textContent = 'Selected device: Web Player (this browser)';
+        });
+      }
+    })();
+  }
   container.appendChild(select);
 }
 
@@ -313,8 +351,10 @@ function playGenrePlaylist(playlistId) {
     return;
   }
   requestWakeLock();
-  // Enable shuffle mode
-  setShuffle(deviceId, true);
+  // Enable shuffle mode only if not Web Playback SDK
+  if (!(selectedDeviceId === null || selectedDeviceId === 'web-playback-sdk')) {
+    setShuffle(deviceId, true);
+  }
   fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
     method: 'PUT',
     headers: {
@@ -344,7 +384,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       previousGenres = genreNames.map(name => {
         return GENRES.find(g => g.name === name);
       }).filter(Boolean);
-      console.log('cookies: ', document.cookie);
       console.log('Restored previous genres from cookie:', genreNames);
     } catch (e) { previousGenres = []; }
   }
