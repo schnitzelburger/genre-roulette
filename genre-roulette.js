@@ -1,14 +1,32 @@
 const GENRES = window.GENRES;
 
-let GENRE_DURATION_MINUTES = 15;
-// Check for URL parameter to override default duration
+const PREVIOUS_GENRES_LIMIT = 3;
+// Check for URL parameter to override default duration (15 minutes)
 const urlGenreDuration = getDurationFromUrl();
-if (urlGenreDuration) GENRE_DURATION_MINUTES = urlGenreDuration;
+const GENRE_DURATION_MINUTES = urlGenreDuration ? urlGenreDuration : 15;
 
 let currentGenre = null;
 let timer = null;
-let previousGenre = null;
+let previousGenres = [];
 let isPaused = false;
+let selectedDeviceId = null;
+let wakeLock = null;
+
+function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').then(lock => {
+      wakeLock = lock;
+      lock.addEventListener('release', () => { wakeLock = null; });
+    }).catch(() => {});
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release();
+    wakeLock = null;
+  }
+}
 
 function getDurationFromUrl() {
     const params = new URLSearchParams(window.location.search);
@@ -30,28 +48,24 @@ async function initializeSpotify() {
     return;
   }
   document.getElementById('status-text').textContent = 'Logged in';
-  document.getElementById('reset-auth').style.display = 'none';
-
-  // Player init only when SDK is ready
-  window.addEventListener('SpotifySDKReady', () => {
-    window.spotifyAuth.initializeSpotifyPlayer(accessToken);
-    const player = window.spotifyAuth.getSpotifyPlayer();
-    if (player) {
-      player.addListener('ready', ({ device_id }) => {
-        window.spotifyAuth.setSpotifyDeviceId(device_id);
-        document.getElementById('status-text').textContent = 'Player ready';
-      });
-    }
-  });
+  // Do NOT initialize Web Playback SDK automatically
 }
 
 function getRandomGenreNoRepeat() {
-  if (GENRES.length < 2) return getRandomGenre();
+  if (GENRES.length <= PREVIOUS_GENRES_LIMIT) return getRandomGenre();
   let genre;
+  let attempts = 0;
   do {
     genre = getRandomGenre();
-  } while (previousGenre && genre.name === previousGenre.name);
-  previousGenre = genre;
+    attempts++;
+    // break after 10 attempts to avoid infinite loop if all genres are in previousGenres
+    if (attempts > 10) break;
+  } while (previousGenres.some(g => g.name === genre.name));
+  // Update previousGenres
+  previousGenres.push(genre);
+  if (previousGenres.length > PREVIOUS_GENRES_LIMIT) previousGenres.shift();
+  // Save to cookie
+  document.cookie = `previousGenres=${encodeURIComponent(JSON.stringify(previousGenres.map(g => g.name)))};path=/;max-age=86400`;
   return genre;
 }
 
@@ -77,9 +91,13 @@ function updateTrackInfo(track, artist) {
     infoElem.style.marginTop = '18px';
     document.getElementById('genre-display').appendChild(infoElem);
   }
-  infoElem.innerHTML = track && artist
-    ? `<strong>${track}</strong><br><span>${artist}</span>`
-    : '';
+  if (track && artist) {
+    infoElem.innerHTML = `<strong>${track}</strong><br><span>${artist}</span>`;
+    infoElem.style.display = 'block';
+  } else {
+    infoElem.innerHTML = '';
+    infoElem.style.display = 'none';
+  }
 }
 
 let timerInterval = null;
@@ -88,10 +106,26 @@ let skipBtn = null;
 let skipUsedForCurrentGenre = false;
 
 function startRoulette() {
+  // Show loading symbol in track-info while waiting for track/artist
+  let infoElem = document.getElementById('track-info');
+  if (infoElem) {
+    infoElem.innerHTML = '<span class="loader"></span>';
+    infoElem.style.display = 'block';
+  }
   if (isPaused) return;
-  const deviceId = window.spotifyAuth.getSpotifyDeviceId();
+  let deviceId;
+  // If Web Player is selected, use SDK deviceId
+  if (selectedDeviceId === 'web-playback-sdk' || selectedDeviceId === null) {
+    deviceId = window.spotifyAuth.getSpotifyDeviceId();
+    if (!deviceId) {
+      alert('Web Player is starting. Please wait a moment and try again.');
+      return;
+    }
+  } else {
+    deviceId = selectedDeviceId;
+  }
   if (!deviceId) {
-    alert('Spotify Player is not ready yet. Please wait a moment and try again.');
+    alert('No Spotify device selected or ready. Please select a device and try again.');
     return;
   }
   currentGenre = getRandomGenreNoRepeat();
@@ -100,6 +134,7 @@ function startRoulette() {
   playGenrePlaylist(currentGenre.playlistId);
   document.getElementById('start-roulette').style.display = 'none';
   document.getElementById('next-genre').style.display = 'none';
+  document.getElementById('device-select').disabled = true;
   // Show skip button
   let skipBtn = document.getElementById('skip-track');
   if (!skipBtn) {
@@ -116,7 +151,14 @@ function startRoulette() {
     if (buttonRow) buttonRow.appendChild(skipBtn);
     skipBtn.addEventListener('click', () => {
       if (!skipUsedForCurrentGenre) {
-        window.spotifyAuth.skipCurrentTrack();
+        // Show loader in track-info when skipping
+        let infoElem = document.getElementById('track-info');
+        if (infoElem) {
+          infoElem.innerHTML = '<span class="loader"></span>';
+          infoElem.style.display = 'block';
+        }
+        const deviceId = selectedDeviceId || window.spotifyAuth.getSpotifyDeviceId();
+        window.spotifyAuth.skipCurrentTrack(deviceId);
         skipUsedForCurrentGenre = true;
         skipBtn.disabled = true;
       }
@@ -126,6 +168,12 @@ function startRoulette() {
     skipBtn.style.display = 'inline-block';
     skipBtn.onclick = () => {
       if (!skipUsedForCurrentGenre) {
+        // Show loader in track-info when skipping
+        let infoElem = document.getElementById('track-info');
+        if (infoElem) {
+          infoElem.innerHTML = '<span class="loader"></span>';
+          infoElem.style.display = 'block';
+        }
         window.spotifyAuth.skipCurrentTrack();
         skipUsedForCurrentGenre = true;
         skipBtn.disabled = true;
@@ -156,11 +204,13 @@ function startRoulette() {
     clearInterval(timerInterval);
     clearInterval(trackInterval);
     if (skipBtn) skipBtn.style.display = 'none';
+    document.getElementById('device-select').disabled = false;
   }, GENRE_DURATION_MINUTES * 60 * 1000);
 }
 
 function pausePlayback() {
-  fetch('https://api.spotify.com/v1/me/player/pause?device_id=' + window.spotifyAuth.getSpotifyDeviceId(), {
+  const deviceId = selectedDeviceId || window.spotifyAuth.getSpotifyDeviceId();
+  fetch('https://api.spotify.com/v1/me/player/pause?device_id=' + deviceId, {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${window.spotifyAuth.getSpotifyAccessToken()}`,
@@ -169,6 +219,7 @@ function pausePlayback() {
   }).then(res => {
     if (res.ok) {
       document.getElementById('status-text').textContent = 'Paused';
+    releaseWakeLock();
     } else {
       res.json().then(data => {
         alert('Error pausing playback: ' + (data.error?.message || 'Unknown error'));
@@ -181,11 +232,134 @@ function updateGenreDisplay(genreName) {
   document.getElementById('genre-name').textContent = genreName;
 }
 
+function showDeviceSelection(devices) {
+  let container = document.getElementById('device-select-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'device-select-container';
+    container.style.margin = '8px 0';
+    document.getElementById('spotify-status').insertBefore(container, document.getElementById('reset-auth'));
+  }
+  container.innerHTML = '<strong>Select playback device:</strong><br>';
+  const select = document.createElement('select');
+  select.id = 'device-select';
+  select.className = 'device-select';
+  select.disabled = false;
+  // Add Web Player option
+  const webPlayerOption = document.createElement('option');
+  webPlayerOption.value = 'web-playback-sdk';
+  webPlayerOption.textContent = 'Web Player (this browser)';
+  select.appendChild(webPlayerOption);
+  // Filter out duplicate Web Playback SDK device
+  const filteredDevices = devices.filter(device => {
+    // Remove Web Playback SDK device if its name is 'Genre Roulette Player' and type is 'Computer'
+    if (device.type === 'Computer' && device.name === 'Genre Roulette Player') {
+      console.log('Filtered out duplicate Web Playback SDK device:', device);
+      return false;
+    }
+    // Otherwise keep
+    return true;
+  });
+
+  // If no other devices except Web Player, show alert
+  if (filteredDevices.length === 0) {
+    alert('No other Spotify devices found. The Web Player will be used.\nIf you want to stream on another device, start a Spotify stream on that device and reload this page.');
+  }
+
+  // Add filtered devices to the select dropdown
+  filteredDevices.forEach(device => {
+    console.log('Device:', device);
+    const option = document.createElement('option');
+    option.value = device.id;
+    option.textContent = `${device.name} (${device.type}${device.is_active ? ', active' : ''})`;
+    select.appendChild(option);
+  });
+  // Default selection logic
+  let defaultDevice = filteredDevices.find(d => d.is_active);
+  if (defaultDevice) console.log('Default active device found:', defaultDevice);
+  if (!defaultDevice) {
+    defaultDevice = filteredDevices.find(d => d.type === 'Smartphone');
+    if (defaultDevice) console.log('Default smartphone device found:', defaultDevice);
+  }
+  if (!defaultDevice && filteredDevices.length > 0) {
+    defaultDevice = filteredDevices[0];
+    console.log('No default device found, using first device:', defaultDevice);
+  }
+  // If no device, default to web player
+  if (!defaultDevice) {
+    console.log('No default device found, using Web Player');
+    select.value = 'web-playback-sdk';
+    selectedDeviceId = null;
+    document.getElementById('status-text').textContent = 'Selected device: Web Player (this browser)';
+  } else {
+    console.log('Default device found:', defaultDevice);
+    select.value = defaultDevice.id;
+    selectedDeviceId = defaultDevice.id;
+    document.getElementById('status-text').textContent = 'Selected device: ' + defaultDevice.name;
+  }
+  select.onchange = async () => {
+    if (select.value === 'web-playback-sdk') {
+      // Initialize Web Playback SDK only when selected
+      await window.spotifyAuth.initializeSpotifyPlayer(await window.spotifyAuth.getAccessToken());
+      // Wait for SDK ready and set deviceId
+      const player = window.spotifyAuth.getSpotifyPlayer();
+      if (player) {
+        player.addListener('ready', ({ device_id }) => {
+          window.spotifyAuth.setSpotifyDeviceId(device_id);
+          selectedDeviceId = device_id;
+          document.getElementById('status-text').textContent = 'Selected device: Web Player (this browser)';
+        });
+      }
+    } else {
+      selectedDeviceId = select.value;
+      document.getElementById('status-text').textContent = 'Selected device: ' + select.options[select.selectedIndex].text;
+    }
+  };
+
+  // If Web Player is preselected, initialize SDK immediately
+  if (select.value === 'web-playback-sdk') {
+    (async () => {
+      await window.spotifyAuth.initializeSpotifyPlayer(await window.spotifyAuth.getAccessToken());
+      const player = window.spotifyAuth.getSpotifyPlayer();
+      if (player) {
+        player.addListener('ready', ({ device_id }) => {
+          window.spotifyAuth.setSpotifyDeviceId(device_id);
+          selectedDeviceId = device_id;
+          document.getElementById('status-text').textContent = 'Selected device: Web Player (this browser)';
+        });
+      }
+    })();
+  }
+  container.appendChild(select);
+}
+
+function setShuffle(deviceId, state = true) {
+  return fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${state}&device_id=${deviceId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${window.spotifyAuth.getSpotifyAccessToken()}`
+    }
+  })
+  .then(response => {
+      if (!response.ok) {
+        alert("Fehler beim Setzen von Shuffle: " + response.status);
+      }
+    })
+    .catch(error => {
+      alert("Netzwerk- oder API-Fehler: " + error);
+  });
+}
+
 function playGenrePlaylist(playlistId) {
-  const deviceId = window.spotifyAuth.getSpotifyDeviceId();
+  const deviceId = selectedDeviceId || window.spotifyAuth.getSpotifyDeviceId();
   if (!deviceId) {
-    alert('Spotify Player is not ready yet. Please wait a moment and try again.');
+    alert('No Spotify device selected or ready. Please select a device and try again.');
     return;
+  }
+  requestWakeLock();
+  // Enable shuffle mode only if not Web Playback SDK
+  if (!(selectedDeviceId === null || selectedDeviceId === 'web-playback-sdk')) {
+    setShuffle(deviceId, true);
   }
   fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
     method: 'PUT',
@@ -207,33 +381,87 @@ function playGenrePlaylist(playlistId) {
 }
 
 // UI setup
-document.addEventListener('DOMContentLoaded', () => {
-  initializeSpotify();
-  document.getElementById('start-roulette').addEventListener('click', () => {
-    isPaused = false;
-    startRoulette();
-  });
-  // Button for next genre
-  let nextBtn = document.getElementById('next-genre');
-  if (!nextBtn) {
-    nextBtn = document.createElement('button');
-    nextBtn.id = 'next-genre';
-    nextBtn.textContent = 'Next Genre';
-    nextBtn.style.display = 'none';
-    document.getElementById('genre-display').appendChild(nextBtn);
+document.addEventListener('DOMContentLoaded', async () => {
+  // Restore previousGenres from cookie
+  const cookieMatch = document.cookie.match(/previousGenres=([^;]+)/);
+  if (cookieMatch) {
+    try {
+      const genreNames = JSON.parse(decodeURIComponent(cookieMatch[1]));
+      previousGenres = genreNames.map(name => {
+        return GENRES.find(g => g.name === name);
+      }).filter(Boolean);
+      console.log('Restored previous genres from cookie:', genreNames);
+    } catch (e) { previousGenres = []; }
   }
-  nextBtn.addEventListener('click', () => {
-    isPaused = false;
-    startRoulette();
-  });
-  const loginBtn = document.getElementById('reset-auth');
-  if (loginBtn) {
-    loginBtn.onclick = () => {
-      if (window.spotifyAuth && typeof window.spotifyAuth.redirectToSpotifyAuth === 'function') {
-        window.spotifyAuth.redirectToSpotifyAuth();
-      } else {
-        alert('Spotify Auth function not available. Please reload the page.');
-      }
-    };
+
+  // --- 1. Spotify Auth & Token Validation ---
+  await initializeSpotify();
+  setupLoginButton();
+
+  const accessToken = await window.spotifyAuth.getAccessToken();
+  const isValidToken = await window.spotifyAuth.validateAccessToken(accessToken);
+  if (!accessToken || !isValidToken) {
+    showLoginState();
+    return;
+  }
+
+  // --- 2. Device Selection ---
+  const devices = await window.spotifyAuth.fetchSpotifyDevices();
+  showDeviceSelection(devices);
+  if (devices.length === 0) {
+    showNoDevicesState();
+  }
+
+  // --- 3. UI Button Setup ---
+  setupRouletteButtons();
+
+  // --- Helper Functions ---
+  function showLoginState() {
+    document.getElementById('status-text').textContent = 'Login to Spotify';
+    const deviceContainer = document.getElementById('device-select-container');
+    if (deviceContainer) deviceContainer.style.display = 'none';
+  }
+
+  function showNoDevicesState() {
+    document.getElementById('status-text').textContent = 'No Spotify devices found. Start playback in your Spotify app or use the Web Player.';
+  }
+
+  function setupRouletteButtons() {
+    // Start button
+    const startBtn = document.getElementById('start-roulette');
+    if (startBtn) {
+      startBtn.addEventListener('click', () => {
+        isPaused = false;
+        startRoulette();
+      });
+    }
+    // Next genre button
+    let nextBtn = document.getElementById('next-genre');
+    if (!nextBtn) {
+      nextBtn = document.createElement('button');
+      nextBtn.id = 'next-genre';
+      nextBtn.textContent = 'Next Genre';
+      nextBtn.style.display = 'none';
+      document.getElementById('button-row').appendChild(nextBtn);
+    }
+    nextBtn.addEventListener('click', () => {
+      isPaused = false;
+      document.getElementById('device-select').disabled = false;
+      startRoulette();
+    });
+  }
+
+  function setupLoginButton() {
+    const loginBtn = document.getElementById('reset-auth');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', () => {
+        if (window.spotifyAuth && typeof window.spotifyAuth.redirectToSpotifyAuth === 'function' && typeof window.spotifyAuth.clearStoredTokens === 'function') {
+          window.spotifyAuth.clearStoredTokens();
+          window.spotifyAuth.redirectToSpotifyAuth();
+        } else {
+          alert('Spotify Auth function not available. Please reload the page.');
+        }
+      });
+    }
   }
 });

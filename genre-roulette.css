@@ -18,7 +18,7 @@ h1 {
   text-align: center;
   color: white;
   margin: 20px 0 30px 0;
-  font-size: 2rem;
+  font-size: 3.5rem;
   font-weight: 700;
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
@@ -29,12 +29,16 @@ h1 {
   max-width: 480px;
   width: 100%;
   margin: 24px auto;
-  padding: 24px;
+  padding: 10px;
   border-radius: 15px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.1);
   background: rgba(255,255,255,0.95);
   text-align: center;
   box-sizing: border-box;
+}
+
+#spotify-status {
+  padding: 24px 24px 10px;
 }
 
 .button-row {
@@ -60,10 +64,12 @@ h1 {
   .container {
     padding: 0 4vw;
   }
+  h1 {
+    font-size: 3.0rem;
+  }
   #spotify-status,
   #genre-display {
     max-width: 98vw;
-    width: 100%;
     min-width: 0;
     box-sizing: border-box;
     padding: 10px;
@@ -95,12 +101,13 @@ h1 {
   }
   #timer-display {
     font-size: 1.1em;
-    margin-top: 8px;
   }
   #track-info {
-    font-size: 1em;
     padding: 8px 8px;
-    margin-top: 10px;
+    width: fit-content;
+    max-width: 90vw;
+    min-width: 0;
+    box-sizing: border-box;
   }
 }
 
@@ -111,7 +118,7 @@ h1 {
 
 #status-text {
   display: block;
-  margin: 10px 0;
+  margin: 8px 0px 10px;
   font-size: 1rem;
   font-weight: 500;
 }
@@ -160,25 +167,39 @@ button:disabled {
 #timer-display {
   font-size: 1.5em;
   font-weight: bold;
-  margin-top: 10px;
+  margin-top: 20px;
+  margin-bottom: 20px;
   text-align: center;
   color: #333;
 }
 
 #track-info {
   font-size: 1.1em;
-  margin-top: 18px;
-  color: #444;
-  background: #fff;
-  border-radius: 8px;
-  padding: 10px 16px;
-  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.08);
-  display: inline-block;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  padding: 12px 16px;
+  color: #fff;
+  background: linear-gradient(90deg, #ff9800 0%, #f57c00 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(255, 152, 0, 0.18);
+  display: block;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  width: fit-content;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 #track-info strong {
-  color: #ff9800;
+  color: #fff;
   font-weight: 700;
+  text-shadow: 0 2px 8px rgba(255,152,0,0.4);
+}
+
+#next-genre {
+  display: block;
+  margin-top: 10px;
 }
 
 .device-select {
@@ -205,4 +226,20 @@ button:disabled {
 .device-select option {
   font-size: 0.95em;
   padding: 4px 8px;
+}
+
+.loader {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #fff;
+  border-top: 3px solid #ff9800;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
