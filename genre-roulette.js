@@ -260,6 +260,12 @@ function showDeviceSelection(devices) {
     // Otherwise keep
     return true;
   });
+
+  // If no other devices except Web Player, show alert
+  if (filteredDevices.length === 0) {
+    alert('No other Spotify devices found. The Web Player will be used.\nIf you want to stream on another device, start a Spotify stream on that device and reload this page.');
+  }
+
   // Add filtered devices to the select dropdown
   filteredDevices.forEach(device => {
     console.log('Device:', device);
